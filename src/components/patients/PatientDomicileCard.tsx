@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
 import {
   MapPin,
-  Navigation,
   Car,
+  Footprints,
   Clock,
   ExternalLink,
   Loader2,
   AlertCircle,
   Edit3,
   CheckCircle2,
+  Compass,
 } from 'lucide-react';
 import {
   openGoogleMapsRoute,
+  getGoogleMapsUrl,
   calculateRouteDistanceAndTime,
   DistanceCalculationResult,
+  TravelMode,
 } from '../../lib/geoUtils';
 
 interface PatientDomicileCardProps {
@@ -22,7 +25,6 @@ interface PatientDomicileCardProps {
   floorDoorbell?: string | null;
   onEditAddress?: () => void;
   className?: string;
-  compact?: boolean;
 }
 
 export function PatientDomicileCard({
@@ -31,25 +33,17 @@ export function PatientDomicileCard({
   floorDoorbell,
   onEditAddress,
   className = '',
-  compact = false,
 }: PatientDomicileCardProps) {
+  const [selectedMode, setSelectedMode] = useState<TravelMode>('driving');
   const [calculating, setCalculating] = useState(false);
-  const [openingRoute, setOpeningRoute] = useState(false);
   const [distanceResult, setDistanceResult] = useState<DistanceCalculationResult | null>(null);
   const [calcError, setCalcError] = useState<string | null>(null);
 
   const hasAddress = !!address && address.trim().length > 0;
 
-  const handleOpenRoute = async () => {
+  const handleOpenGoogleMaps = (mode: TravelMode = selectedMode) => {
     if (!hasAddress) return;
-    setOpeningRoute(true);
-    try {
-      await openGoogleMapsRoute(address);
-    } catch (err: any) {
-      console.warn('Fallback opening Maps:', err);
-    } finally {
-      setOpeningRoute(false);
-    }
+    openGoogleMapsRoute(address, mode);
   };
 
   const handleCalculateDistance = async () => {
@@ -62,7 +56,7 @@ export function PatientDomicileCard({
       const res = await calculateRouteDistanceAndTime(address);
       setDistanceResult(res);
     } catch (err: any) {
-      console.warn('Distance calculation warning:', err);
+      console.warn('Distance calculation error/warning:', err);
       setCalcError('Per calcolare distanza e tempo apri il percorso in Google Maps.');
     } finally {
       setCalculating(false);
@@ -87,7 +81,7 @@ export function PatientDomicileCard({
               Indirizzo non inserito
             </p>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Aggiungi l'indirizzo di residenza per calcolare la distanza e avviare il navigatore.
+              Aggiungi l'indirizzo di residenza per calcolare la distanza e avviare la navigazione in auto o a piedi.
             </p>
 
             {onEditAddress && (
@@ -105,6 +99,8 @@ export function PatientDomicileCard({
       </div>
     );
   }
+
+  const directGoogleMapsUrl = getGoogleMapsUrl(address, selectedMode);
 
   return (
     <div
@@ -135,7 +131,7 @@ export function PatientDomicileCard({
       </div>
 
       {/* Main Address Display Box */}
-      <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 my-3">
+      <div className="bg-slate-50/90 rounded-2xl p-4 border border-slate-200/80 my-3">
         <div className="flex items-start gap-2.5">
           <MapPin className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
@@ -151,16 +147,52 @@ export function PatientDomicileCard({
         </div>
       </div>
 
+      {/* Travel Mode Selector: In Auto vs A Piedi */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            Modalità di percorso:
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setSelectedMode('driving')}
+            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              selectedMode === 'driving'
+                ? 'bg-white text-teal-900 shadow-xs border border-teal-200'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="text-base">🚗</span>
+            <span>In auto</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedMode('walking')}
+            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              selectedMode === 'walking'
+                ? 'bg-white text-teal-900 shadow-xs border border-teal-200'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="text-base">🚶</span>
+            <span>A piedi</span>
+          </button>
+        </div>
+      </div>
+
       {/* Calculated Distance and Time Panel */}
       {distanceResult && (
-        <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 mb-4 animate-in fade-in duration-200">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 mb-2 flex items-center gap-1.5">
+        <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-4 mb-4 animate-in fade-in duration-200">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 mb-2.5 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             Distanza dal paziente
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white/90 p-3 rounded-xl border border-emerald-100 flex items-center gap-2.5">
-              <span className="text-xl">🚗</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="bg-white/95 p-3 rounded-xl border border-emerald-100 flex items-center gap-2.5">
+              <span className="text-xl">📍</span>
               <div>
                 <span className="text-[10px] text-slate-400 block uppercase font-bold">Distanza</span>
                 <span className="text-base font-bold text-emerald-950">
@@ -168,12 +200,23 @@ export function PatientDomicileCard({
                 </span>
               </div>
             </div>
-            <div className="bg-white/90 p-3 rounded-xl border border-emerald-100 flex items-center gap-2.5">
-              <span className="text-xl">⏱️</span>
+
+            <div className="bg-white/95 p-3 rounded-xl border border-emerald-100 flex items-center gap-2.5">
+              <span className="text-xl">🚗</span>
               <div>
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Tempo stimato</span>
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">In Auto</span>
                 <span className="text-base font-bold text-emerald-950">
                   {distanceResult.formattedDuration}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-white/95 p-3 rounded-xl border border-emerald-100 flex items-center gap-2.5">
+              <span className="text-xl">🚶</span>
+              <div>
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">A Piedi</span>
+                <span className="text-base font-bold text-emerald-950">
+                  {distanceResult.formattedWalkingDuration || 'circa 15 min'}
                 </span>
               </div>
             </div>
@@ -191,28 +234,23 @@ export function PatientDomicileCard({
 
       {/* Action Buttons (Large, Touch-Friendly for Mobile & Desktop OSS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-        {/* Button 1: Apri percorso in Google Maps */}
-        <button
-          type="button"
-          onClick={handleOpenRoute}
-          disabled={openingRoute}
-          className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-bold text-sm shadow-xs transition-all cursor-pointer min-h-[48px]"
+        {/* Direct Link to Google Maps (guaranteed direct opening in native app or new tab) */}
+        <a
+          href={directGoogleMapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => {
+            // Also call openGoogleMapsRoute for maximum compatibility
+            openGoogleMapsRoute(address, selectedMode);
+          }}
+          className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-2xl bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-bold text-sm shadow-xs transition-all cursor-pointer min-h-[48px] text-center no-underline"
         >
-          {openingRoute ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Apertura navigatore...
-            </>
-          ) : (
-            <>
-              <span className="text-base">🗺️</span>
-              <span>Apri percorso</span>
-              <ExternalLink className="w-4 h-4 ml-auto opacity-70" />
-            </>
-          )}
-        </button>
+          <span className="text-base">{selectedMode === 'walking' ? '🚶' : '🗺️'}</span>
+          <span>Apri percorso {selectedMode === 'walking' ? 'a piedi' : 'in auto'}</span>
+          <ExternalLink className="w-4 h-4 ml-auto opacity-75" />
+        </a>
 
-        {/* Button 2: Calcola distanza dal dispositivo */}
+        {/* Button: Calcola distanza dal dispositivo */}
         <button
           type="button"
           onClick={handleCalculateDistance}
@@ -233,7 +271,28 @@ export function PatientDomicileCard({
         </button>
       </div>
 
-      <div className="text-[10px] text-slate-400 mt-3 text-center flex items-center justify-center gap-1">
+      {/* Quick shortcuts for fast 1-click launch to both modes */}
+      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+        <span className="text-slate-400 text-[11px]">Avvio rapido Google Maps:</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => openGoogleMapsRoute(address, 'driving')}
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 hover:text-teal-900 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 cursor-pointer"
+          >
+            🚗 In auto
+          </button>
+          <button
+            type="button"
+            onClick={() => openGoogleMapsRoute(address, 'walking')}
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-700 hover:text-teal-900 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 cursor-pointer"
+          >
+            🚶 A piedi
+          </button>
+        </div>
+      </div>
+
+      <div className="text-[10px] text-slate-400 mt-2.5 text-center flex items-center justify-center gap-1">
         <span>🔒</span>
         <span>Posizione GPS utilizzata solo sul dispositivo e mai memorizzata</span>
       </div>

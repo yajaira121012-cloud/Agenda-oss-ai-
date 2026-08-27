@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AppLayout, ActiveTab } from './components/layout/AppLayout';
@@ -10,6 +10,7 @@ import { CareDiaryListView } from './components/diary/CareDiaryListView';
 import { VitalSignsListView } from './components/vitals/VitalSignsListView';
 import { ProfileView } from './components/profile/ProfileView';
 import { SettingsView } from './components/settings/SettingsView';
+import { resetAppScroll } from './lib/scrollUtils';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -19,8 +20,14 @@ function AppContent() {
   // Quick Action Modal states triggered from Header or Dashboard
   const [openNewPatientModal, setOpenNewPatientModal] = useState(false);
 
+  // Guarantee scroll resets to top whenever active tab or patient changes
+  useEffect(() => {
+    resetAppScroll();
+  }, [activeTab, selectedPatientId, patientDetailTab]);
+
   // Handle patient selection from list, diary, vitals or calendar
   const handleSelectPatient = (patientId: string, subTab?: string) => {
+    resetAppScroll();
     setSelectedPatientId(patientId);
     if (subTab) {
       if (subTab === 'care_diary' || subTab === 'diario') setPatientDetailTab('diario');
@@ -30,7 +37,11 @@ function AppContent() {
       else if (subTab === 'mobilita') setPatientDetailTab('mobilita');
       else if (subTab === 'sensorialita') setPatientDetailTab('sensorialita');
       else if (subTab === 'alimentazione') setPatientDetailTab('alimentazione');
+      else if (subTab === 'alvo' || subTab === 'scariche' || subTab === 'bowel') setPatientDetailTab('alvo');
+      else if (subTab === 'catetere' || subTab === 'catheter') setPatientDetailTab('catetere');
+      else if (subTab === 'medicazioni' || subTab === 'medicazione' || subTab === 'wounds') setPatientDetailTab('medicazioni');
       else if (subTab === 'agenda') setPatientDetailTab('agenda');
+      else if (subTab === 'domiciliare') setPatientDetailTab('domiciliare');
       else setPatientDetailTab('anagrafica');
     } else {
       setPatientDetailTab('anagrafica');
@@ -39,20 +50,24 @@ function AppContent() {
   };
 
   const handleBackToPatients = () => {
+    resetAppScroll();
     setSelectedPatientId(null);
     setActiveTab('patients');
   };
 
   const handleQuickNewPatient = () => {
+    resetAppScroll();
     setActiveTab('patients');
     setOpenNewPatientModal(true);
   };
 
   const handleQuickNewDiary = () => {
+    resetAppScroll();
     setActiveTab('care-diary');
   };
 
   const handleQuickNewVital = () => {
+    resetAppScroll();
     setActiveTab('vital-signs');
   };
 

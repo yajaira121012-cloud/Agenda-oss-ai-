@@ -25,6 +25,7 @@ import { getRecentVitalSigns } from '../../services/vitalSignsService';
 import { getAppointments } from '../../services/appointmentsService';
 import { useAuth } from '../../context/AuthContext';
 import { openGoogleMapsRoute } from '../../lib/geoUtils';
+import { resetAppScroll } from '../../lib/scrollUtils';
 
 interface DashboardViewProps {
   onSelectPatient: (patientId: string) => void;
@@ -41,6 +42,15 @@ export function DashboardView({
   onOpenNewDiary,
   onOpenNewVital,
 }: DashboardViewProps) {
+  const handleNav = (tab: any) => {
+    resetAppScroll();
+    onNavigateTab(tab);
+  };
+
+  const handleSelect = (patientId: string) => {
+    resetAppScroll();
+    onSelectPatient(patientId);
+  };
   const { profile } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [recentDiary, setRecentDiary] = useState<any[]>([]);
@@ -104,7 +114,7 @@ export function DashboardView({
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Patients */}
         <div
-          onClick={() => onNavigateTab('patients')}
+          onClick={() => handleNav('patients')}
           className="bg-white p-6 rounded-3xl shadow-xs border border-[#E1E4E8] hover:border-teal-400 transition-all cursor-pointer group"
         >
           <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
@@ -118,7 +128,7 @@ export function DashboardView({
 
         {/* Active Patients */}
         <div
-          onClick={() => onNavigateTab('patients')}
+          onClick={() => handleNav('patients')}
           className="bg-white p-6 rounded-3xl shadow-xs border border-[#E1E4E8] hover:border-teal-400 transition-all cursor-pointer group"
         >
           <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
@@ -132,7 +142,7 @@ export function DashboardView({
 
         {/* Today's Tasks */}
         <div
-          onClick={() => onNavigateTab('agenda')}
+          onClick={() => handleNav('agenda')}
           className="bg-white p-6 rounded-3xl shadow-xs border border-[#E1E4E8] hover:border-teal-400 transition-all cursor-pointer group"
         >
           <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
@@ -148,7 +158,7 @@ export function DashboardView({
 
         {/* Hospitalized / Needs Follow-up */}
         <div
-          onClick={() => onNavigateTab('patients')}
+          onClick={() => handleNav('patients')}
           className="bg-white p-6 rounded-3xl shadow-xs border border-[#E1E4E8] hover:border-teal-400 transition-all cursor-pointer group"
         >
           <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
@@ -171,7 +181,7 @@ export function DashboardView({
               <p className="text-xs text-slate-400 mt-0.5">Consegne cliniche e osservazioni del turno</p>
             </div>
             <button
-              onClick={() => onNavigateTab('care-diary')}
+              onClick={() => handleNav('care-diary')}
               className="text-teal-600 hover:text-teal-700 text-sm font-semibold cursor-pointer"
             >
               Vedi tutto
@@ -219,7 +229,7 @@ export function DashboardView({
                     return (
                       <tr
                         key={entry.id}
-                        onClick={() => onSelectPatient(entry.patient_id)}
+                        onClick={() => handleSelect(entry.patient_id)}
                         className="hover:bg-[#F5F7F9]/70 cursor-pointer transition-colors"
                       >
                         <td className="p-4 font-mono text-xs text-slate-500 font-medium">{time}</td>
@@ -286,7 +296,7 @@ export function DashboardView({
                       </div>
 
                       <div
-                        onClick={() => onSelectPatient(p.id)}
+                        onClick={() => handleSelect(p.id)}
                         className="cursor-pointer group"
                       >
                         <p className="text-sm font-bold text-[#1A1C1E] group-hover:text-teal-700 transition-colors">
@@ -299,23 +309,37 @@ export function DashboardView({
                       </div>
 
                       {hasAddress && (
-                        <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1.5">
                           <button
                             type="button"
-                            onClick={async (e) => {
+                            title="Apri percorso in auto su Google Maps"
+                            onClick={(e) => {
                               e.stopPropagation();
-                              await openGoogleMapsRoute(p.address!);
+                              openGoogleMapsRoute(p.address!, 'driving');
                             }}
-                            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                            className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                           >
-                            <span>🗺️</span>
-                            <span>Percorso</span>
+                            <span>🚗</span>
+                            <span>In Auto</span>
                           </button>
 
                           <button
                             type="button"
-                            onClick={() => onSelectPatient(p.id)}
-                            className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                            title="Apri percorso a piedi su Google Maps"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openGoogleMapsRoute(p.address!, 'walking');
+                            }}
+                            className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold border border-teal-200 transition-all cursor-pointer"
+                          >
+                            <span>🚶</span>
+                            <span>A Piedi</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSelect(p.id)}
+                            className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer shrink-0"
                           >
                             Scheda
                           </button>

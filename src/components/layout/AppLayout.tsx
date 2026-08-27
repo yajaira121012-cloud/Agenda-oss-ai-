@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react';
+import { useState, useEffect, useRef, ReactNode } from 'react';
 import {
   Users,
   LayoutDashboard,
@@ -16,6 +16,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { resetAppScroll } from '../../lib/scrollUtils';
 
 export type ActiveTab =
   | 'dashboard'
@@ -47,6 +48,12 @@ export function AppLayout({
   const { user, profile, signOut, isConfigured } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quickActionOpen, setQuickActionOpen] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Automatically reset scroll position to top whenever active navigation tab changes
+  useEffect(() => {
+    resetAppScroll();
+  }, [currentTab]);
 
   const navItems: { id: ActiveTab; label: string; icon: typeof LayoutDashboard }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -59,6 +66,7 @@ export function AppLayout({
   ];
 
   const handleNavClick = (tab: ActiveTab) => {
+    resetAppScroll();
     onSelectTab(tab);
     setMobileMenuOpen(false);
   };
@@ -364,7 +372,12 @@ export function AppLayout({
         </header>
 
         {/* Scrollable View Content with #F5F7F9 background */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div
+          id="main-scroll-container"
+          data-scroll-container="true"
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
+        >
           <div className="max-w-7xl mx-auto w-full">{children}</div>
         </div>
       </main>

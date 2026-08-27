@@ -500,17 +500,30 @@ export function PatientsListView({
                 <div className="pt-3.5 border-t border-[#F5F7F9] flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {p.address && (
-                      <button
-                        title="Apri percorso stradale in Google Maps"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          await openGoogleMapsRoute(p.address!);
-                        }}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
-                      >
-                        <span>🗺️</span>
-                        <span>Percorso</span>
-                      </button>
+                      <>
+                        <button
+                          title="Apri percorso in auto su Google Maps"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openGoogleMapsRoute(p.address!, 'driving');
+                          }}
+                          className="px-2 py-1 rounded-lg text-[11px] font-bold bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          <span>🚗</span>
+                          <span>Auto</span>
+                        </button>
+                        <button
+                          title="Apri percorso a piedi su Google Maps"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openGoogleMapsRoute(p.address!, 'walking');
+                          }}
+                          className="px-2 py-1 rounded-lg text-[11px] font-bold bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>🚶</span>
+                          <span>Piedi</span>
+                        </button>
+                      </>
                     )}
                     <button
                       title="Apri Dettaglio Turno Domiciliare"

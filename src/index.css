@@ -1,1 +1,24 @@
 @import "tailwindcss";
+
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  header, nav, aside, .no-print, button:not(.print-include) {
+    display: none !important;
+  }
+
+  section, table, tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  @page {
+    margin: 1.2cm;
+    size: auto;
+  }
+}

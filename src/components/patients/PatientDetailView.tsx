@@ -18,10 +18,13 @@ import {
   AlertCircle,
   Loader2,
   MapPin,
+  FileText,
+  Droplets,
+  Layers,
+  Printer,
 } from 'lucide-react';
 import { Patient } from '../../types';
 import { getPatientById } from '../../services/patientsService';
-import { PatientDomicileCard } from './PatientDomicileCard';
 import { TabDomiciliare } from './tabs/TabDomiciliare';
 import { TabAnagrafica } from './tabs/TabAnagrafica';
 import { TabAnamnesi } from './tabs/TabAnamnesi';
@@ -30,8 +33,13 @@ import { TabSensorialita } from './tabs/TabSensorialita';
 import { TabParametri } from './tabs/TabParametri';
 import { TabTerapia } from './tabs/TabTerapia';
 import { TabAlimentazione } from './tabs/TabAlimentazione';
+import { TabAlvo } from './tabs/TabAlvo';
+import { TabCatetere } from './tabs/TabCatetere';
+import { TabMedicazioni } from './tabs/TabMedicazioni';
 import { TabDiario } from './tabs/TabDiario';
 import { TabAgenda } from './tabs/TabAgenda';
+import { PatientFullDossierModal } from './PatientFullDossierModal';
+import { resetAppScroll } from '../../lib/scrollUtils';
 
 export type PatientTab =
   | 'domiciliare'
@@ -42,6 +50,9 @@ export type PatientTab =
   | 'parametri'
   | 'terapia'
   | 'alimentazione'
+  | 'alvo'
+  | 'catetere'
+  | 'medicazioni'
   | 'diario'
   | 'agenda';
 
@@ -54,12 +65,26 @@ interface PatientDetailViewProps {
 export function PatientDetailView({
   patientId,
   onBack,
-  initialTab = 'domiciliare',
+  initialTab = 'anagrafica',
 }: PatientDetailViewProps) {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [activeTab, setActiveTab] = useState<PatientTab>(initialTab);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDossierModalOpen, setIsDossierModalOpen] = useState(false);
+
+  // Synchronize with initialTab whenever it changes from outer navigation
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+      resetAppScroll();
+    }
+  }, [initialTab]);
+
+  // Reset scroll to top whenever sub-tab changes inside patient detail
+  useEffect(() => {
+    resetAppScroll();
+  }, [activeTab]);
 
   const loadPatient = async () => {
     setLoading(true);
@@ -102,6 +127,9 @@ export function PatientDetailView({
     { id: 'parametri', label: 'Parametri Vitali', icon: Activity },
     { id: 'terapia', label: 'Terapia Farmaci', icon: Pill },
     { id: 'alimentazione', label: 'Alimentazione & Idratazione', icon: Utensils },
+    { id: 'alvo', label: 'Alvo & Scariche', icon: FileText },
+    { id: 'catetere', label: 'Catetere Vescicale', icon: Droplets },
+    { id: 'medicazioni', label: 'Medicazioni & Lesioni', icon: Layers },
     { id: 'mobilita', label: 'Mobilità & Ausili', icon: Accessibility },
     { id: 'sensorialita', label: 'Sensorialità & Protesi', icon: Eye },
     { id: 'anamnesi', label: 'Anamnesi & Patologie', icon: HeartPulse },
@@ -226,8 +254,17 @@ export function PatientDetailView({
             </div>
           </div>
 
-          {/* Quick Badges in Header */}
-          <div className="flex flex-wrap md:flex-col gap-2 shrink-0">
+          {/* Quick Badges and Print/PDF in Header */}
+          <div className="flex flex-wrap md:flex-col items-start md:items-end gap-2.5 shrink-0">
+            <button
+              onClick={() => setIsDossierModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+              title="Apri e stampa la cartella clinico-assistenziale completa in PDF"
+            >
+              <Printer className="w-4 h-4" />
+              Stampa Cartella Completa (PDF)
+            </button>
+
             {patient.emergency_contact_phone && (
               <div className="text-xs bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl text-rose-800">
                 <span className="font-bold block text-[10px] uppercase text-rose-600">Emergenza / Familiare</span>
@@ -247,7 +284,11 @@ export function PatientDetailView({
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                id={`patient-tab-${tab.id}`}
+                onClick={() => {
+                  resetAppScroll();
+                  setActiveTab(tab.id);
+                }}
                 className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? 'bg-teal-600 text-white shadow-xs'
@@ -262,21 +303,16 @@ export function PatientDetailView({
         </div>
       </div>
 
-      {/* Sezione 📍 Domicilio del Paziente & Navigatore Google Maps */}
-      <PatientDomicileCard
-        address={patient.address}
-        floorDoorbell={patient.floor_doorbell}
-        patientName={`${patient.first_name} ${patient.last_name}`}
-        onEditAddress={() => setActiveTab('anagrafica')}
-      />
-
       {/* Render Active Tab Content */}
       <div className="transition-all">
         {activeTab === 'domiciliare' && (
           <TabDomiciliare
             patient={patient}
             onPatientUpdated={(updated) => setPatient(updated)}
-            onNavigateToDiary={() => setActiveTab('diario')}
+            onNavigateToDiary={() => {
+              resetAppScroll();
+              setActiveTab('diario');
+            }}
           />
         )}
         {activeTab === 'anagrafica' && (
@@ -286,11 +322,23 @@ export function PatientDetailView({
         {activeTab === 'parametri' && <TabParametri patientId={patient.id} />}
         {activeTab === 'terapia' && <TabTerapia patientId={patient.id} />}
         {activeTab === 'alimentazione' && <TabAlimentazione patientId={patient.id} />}
+        {activeTab === 'alvo' && <TabAlvo patientId={patient.id} />}
+        {activeTab === 'catetere' && <TabCatetere patientId={patient.id} />}
+        {activeTab === 'medicazioni' && <TabMedicazioni patientId={patient.id} />}
         {activeTab === 'mobilita' && <TabMobilita patientId={patient.id} />}
         {activeTab === 'sensorialita' && <TabSensorialita patientId={patient.id} />}
         {activeTab === 'anamnesi' && <TabAnamnesi patientId={patient.id} />}
         {activeTab === 'agenda' && <TabAgenda patientId={patient.id} />}
       </div>
+
+      {/* Cartella Clinica Integrata Full PDF / Print Modal */}
+      {isDossierModalOpen && (
+        <PatientFullDossierModal
+          patientId={patient.id}
+          isOpen={isDossierModalOpen}
+          onClose={() => setIsDossierModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -480,16 +480,30 @@ export function TabDomiciliare({
                   </p>
                 </div>
                 {patient.address && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await openGoogleMapsRoute(patient.address!);
-                    }}
-                    className="mt-2.5 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
-                  >
-                    <span>🗺️</span>
-                    <span>Apri percorso</span>
-                  </button>
+                  <div className="mt-2.5 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      title="Apri percorso in auto su Google Maps"
+                      onClick={() => {
+                        openGoogleMapsRoute(patient.address!, 'driving');
+                      }}
+                      className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    >
+                      <span>🚗</span>
+                      <span>Auto</span>
+                    </button>
+                    <button
+                      type="button"
+                      title="Apri percorso a piedi su Google Maps"
+                      onClick={() => {
+                        openGoogleMapsRoute(patient.address!, 'walking');
+                      }}
+                      className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold rounded-xl border border-teal-200 transition-colors cursor-pointer"
+                    >
+                      <span>🚶</span>
+                      <span>Piedi</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

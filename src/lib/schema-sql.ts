@@ -98,25 +98,57 @@ CREATE TABLE IF NOT EXISTS public.vital_signs (
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 8. Tabella Terapia Farmacologica
+-- 8. Tabella Terapia Farmacologica (Cartella Clinico-Assistenziale)
 CREATE TABLE IF NOT EXISTS public.medications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     patient_id UUID NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
     drug_name TEXT NOT NULL,
     active_ingredient TEXT,
+    aic_code TEXT,
     dosage TEXT NOT NULL,
     unit TEXT DEFAULT 'cpr',
+    pharma_form TEXT,
     route TEXT DEFAULT 'Orale',
     frequency TEXT NOT NULL,
     timing_time TEXT,
     start_date DATE,
     end_date DATE,
+    status TEXT CHECK (status IN ('active', 'completed', 'suspended')) DEFAULT 'active',
+    status_reason TEXT,
+    prescribed_by TEXT,
     indication TEXT,
     meal_relation TEXT CHECK (meal_relation IN ('before', 'during', 'after', 'independent')) DEFAULT 'independent',
     notes TEXT,
     is_active BOOLEAN DEFAULT true NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Indici per medications
+CREATE INDEX IF NOT EXISTS idx_medications_patient_id ON public.medications(patient_id);
+CREATE INDEX IF NOT EXISTS idx_medications_aic_code ON public.medications(aic_code);
+CREATE INDEX IF NOT EXISTS idx_medications_status ON public.medications(status);
+
+-- 8b. Tabella Registro Somministrazioni Farmaci
+CREATE TABLE IF NOT EXISTS public.medication_administrations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    medication_id UUID NOT NULL REFERENCES public.medications(id) ON DELETE CASCADE,
+    patient_id UUID NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
+    drug_name TEXT NOT NULL,
+    dosage TEXT,
+    scheduled_date DATE NOT NULL,
+    scheduled_time TEXT NOT NULL,
+    administered_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    status TEXT CHECK (status IN ('administered', 'refused', 'omitted', 'delayed')) NOT NULL DEFAULT 'administered',
+    administered_by TEXT NOT NULL,
+    recorded_by TEXT NOT NULL,
+    notes TEXT,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_med_admin_patient_id ON public.medication_administrations(patient_id);
+CREATE INDEX IF NOT EXISTS idx_med_admin_medication_id ON public.medication_administrations(medication_id);
+CREATE INDEX IF NOT EXISTS idx_med_admin_date ON public.medication_administrations(scheduled_date);
 
 -- 9. Tabella Alimentazione e Idratazione
 CREATE TABLE IF NOT EXISTS public.food_records (
@@ -166,6 +198,35 @@ CREATE TABLE IF NOT EXISTS public.appointments (
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 12. Tabella Vademecum Farmaci Italiani (AIFA Open Data)
+CREATE TABLE IF NOT EXISTS public.vademecum_medications (
+    id TEXT PRIMARY KEY,
+    trade_name TEXT NOT NULL,
+    active_ingredient TEXT,
+    aic_code TEXT UNIQUE NOT NULL,
+    pharma_form TEXT,
+    dosage TEXT,
+    package_desc TEXT,
+    units_count TEXT,
+    holder_company TEXT,
+    admin_route TEXT DEFAULT 'Orale',
+    atc_code TEXT,
+    reimbursement_class TEXT DEFAULT 'A',
+    prescription_regime TEXT DEFAULT 'RR',
+    marketing_status TEXT DEFAULT 'In commercio',
+    official_notes TEXT,
+    source TEXT DEFAULT 'AIFA - Agenzia Italiana del Farmaco (Open Data)',
+    source_updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Indici di ricerca rapida Vademecum
+CREATE INDEX IF NOT EXISTS idx_vademecum_trade_name ON public.vademecum_medications(trade_name);
+CREATE INDEX IF NOT EXISTS idx_vademecum_active_ingredient ON public.vademecum_medications(active_ingredient);
+CREATE INDEX IF NOT EXISTS idx_vademecum_aic_code ON public.vademecum_medications(aic_code);
+CREATE INDEX IF NOT EXISTS idx_vademecum_atc_code ON public.vademecum_medications(atc_code);
+
 -- ==============================================================================
 -- ATTIVAZIONE ROW LEVEL SECURITY (RLS) SU TUTTE LE TABELLE
 -- ==============================================================================
@@ -179,6 +240,7 @@ ALTER TABLE public.medications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.food_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.care_diary ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vademecum_medications ENABLE ROW LEVEL SECURITY;
 
 -- ==============================================================================
 -- DEFINIZIONE DELLE POLICY RLS PER UTENTI AUTENTICATI
@@ -238,6 +300,12 @@ CREATE POLICY "Gestione diario assistenziale" ON public.care_diary
 DROP POLICY IF EXISTS "Gestione appuntamenti agenda" ON public.appointments;
 CREATE POLICY "Gestione appuntamenti agenda" ON public.appointments
     FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Vademecum Farmaci AIFA (Lettura per tutti gli operatori, gestione abilitata)
+DROP POLICY IF EXISTS "Consultazione vademecum farmaci" ON public.vademecum_medications;
+CREATE POLICY "Consultazione vademecum farmaci" ON public.vademecum_medications
+    FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
 
 -- ==============================================================================
 -- TRIGGER CREAZIONE AUTOMATICA PROFILO SU REGISTRAZIONE AUTH
