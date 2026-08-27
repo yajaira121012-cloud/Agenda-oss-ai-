@@ -1,0 +1,6 @@
+{
+  "name": "Agenda OSS",
+  "description": "Applicazione gestionale e cartella per Operatori Socio-Sanitari (OSS) per l'organizzazione, il diario assistenziale e la registrazione clinico-assistenziale dei pazienti con Supabase.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
