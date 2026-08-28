@@ -19,6 +19,9 @@ import {
   ChevronRight,
   Droplet,
   HeartPulse,
+  MessageSquarePlus,
+  Send,
+  PhoneCall,
 } from 'lucide-react';
 import {
   WoundDressingRecord,
@@ -60,6 +63,14 @@ export function TabMedicazioni({ patientId }: TabMedicazioniProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<WoundDressingRecord | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Quick Note Modal State
+  const [quickNoteModalOpen, setQuickNoteModalOpen] = useState(false);
+  const [quickNoteRecord, setQuickNoteRecord] = useState<WoundDressingRecord | null>(null);
+  const [quickNoteText, setQuickNoteText] = useState('');
+  const [quickNoteAppendMode, setQuickNoteAppendMode] = useState(true);
+  const [quickNoteSaving, setQuickNoteSaving] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'cura_crema' | 'comunicazioni' | 'medicazione' | 'postura'>('all');
 
   // Form Fields
   const [woundType, setWoundType] = useState<WoundType>('arrossamento_cute_integra');
@@ -174,6 +185,15 @@ export function TabMedicazioni({ patientId }: TabMedicazioniProps) {
     setModalOpen(true);
   };
 
+  // Open dedicated Quick Note modal for a specific wound record
+  const handleOpenQuickNote = (rec: WoundDressingRecord) => {
+    setQuickNoteRecord(rec);
+    setQuickNoteText('');
+    setQuickNoteAppendMode(true);
+    setSelectedCategory('all');
+    setQuickNoteModalOpen(true);
+  };
+
   // Apply suggested protocol button
   const handleApplySuggestion = () => {
     setCleansingSolution(currentSuggestion.cleansingSolution);
@@ -196,6 +216,53 @@ export function TabMedicazioni({ patientId }: TabMedicazioniProps) {
       if (!prev || prev.trim().length === 0) return snippet.text;
       return `${prev} ${snippet.text}`;
     });
+  };
+
+  // Append snippet into quick note textarea
+  const handleAppendToQuickNote = (snippetText: string) => {
+    setQuickNoteText((prev) => {
+      if (!prev || prev.trim().length === 0) return snippetText;
+      return `${prev} ${snippetText}`;
+    });
+  };
+
+  // Save quick note directly to the record
+  const handleSaveQuickNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickNoteRecord) return;
+    if (!quickNoteText.trim()) return;
+
+    setQuickNoteSaving(true);
+    const operatorName =
+      profile?.full_name || profile?.qualification || user?.email?.split('@')[0] || 'Operatore OSS';
+    const now = new Date();
+    const timeStr = `${now.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })} ${now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
+
+    let updatedNotes = '';
+    if (quickNoteAppendMode && quickNoteRecord.notes) {
+      updatedNotes = `${quickNoteRecord.notes}\n[${timeStr} - ${operatorName}]: ${quickNoteText.trim()}`;
+    } else if (quickNoteAppendMode) {
+      updatedNotes = `[${timeStr} - ${operatorName}]: ${quickNoteText.trim()}`;
+    } else {
+      updatedNotes = quickNoteText.trim();
+    }
+
+    try {
+      const { data, error } = await updateWoundRecord(quickNoteRecord.id, {
+        notes: updatedNotes,
+      });
+      if (error) throw new Error(error);
+      if (data) {
+        setRecords((prev) => prev.map((r) => (r.id === data.id ? data : r)));
+      }
+      setQuickNoteModalOpen(false);
+      setQuickNoteRecord(null);
+      setQuickNoteText('');
+    } catch (err: any) {
+      alert(err.message || 'Errore nel salvataggio della nota');
+    } finally {
+      setQuickNoteSaving(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -592,10 +659,23 @@ export function TabMedicazioni({ patientId }: TabMedicazioniProps) {
                         <div className="text-[10px] text-slate-500 font-semibold">
                           Detersione: {rec.cleansing_solution === 'fisiologica_09' ? 'Fisiologica 0.9%' : rec.cleansing_solution === 'detergente_lenitivo_ph_neutro' ? 'Detergente pH neutro' : rec.cleansing_solution}
                         </div>
-                        {rec.notes && (
-                          <p className="text-[11px] text-slate-600 line-clamp-2 mt-0.5">
-                            {rec.notes}
-                          </p>
+                        {rec.notes ? (
+                          <div className="space-y-1 mt-0.5">
+                            {(rec.notes.toLowerCase().includes('avvisato') ||
+                              rec.notes.toLowerCase().includes('infermiere') ||
+                              rec.notes.toLowerCase().includes('medico') ||
+                              rec.notes.toLowerCase().includes('mmg')) && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[9px] border border-amber-200">
+                                <PhoneCall className="w-2.5 h-2.5 text-amber-700" />
+                                Avviso inviato
+                              </span>
+                            )}
+                            <p className="text-[11px] text-slate-700 whitespace-pre-line bg-slate-50/80 p-1.5 rounded-lg border border-slate-200/60 font-normal">
+                              {rec.notes}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic text-[10px] block mt-0.5">Nessuna nota</span>
                         )}
                       </td>
 
@@ -615,7 +695,17 @@ export function TabMedicazioni({ patientId }: TabMedicazioniProps) {
                       </td>
 
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Pulsante rapido Aggiungi Nota */}
+                          <button
+                            onClick={() => handleOpenQuickNote(rec)}
+                            className="px-2.5 py-1 rounded-xl text-teal-700 hover:bg-teal-100/90 bg-teal-50 border border-teal-200 font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                            title="Aggiungi una nota veloce o avviso a questa medicazione"
+                          >
+                            <MessageSquarePlus className="w-3.5 h-3.5 text-teal-600" />
+                            + Nota
+                          </button>
+
                           <button
                             onClick={() => handleOpenEdit(rec)}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-teal-700 hover:bg-teal-50 transition-colors cursor-pointer"
@@ -640,6 +730,165 @@ export function TabMedicazioni({ patientId }: TabMedicazioniProps) {
           </div>
         )}
       </div>
+
+      {/* MODALE NOTA RAPIDA PER SINGOLA MEDICAZIONE */}
+      {quickNoteModalOpen && quickNoteRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden border border-[#E1E4E8]">
+            <div className="p-4 sm:p-5 border-b border-[#E1E4E8] flex items-center justify-between bg-teal-50/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-teal-600 text-white flex items-center justify-center font-bold shrink-0">
+                  <MessageSquarePlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                    Aggiungi Nota / Aggiornamento alla Medicazione
+                  </h3>
+                  <p className="text-xs text-slate-600">
+                    Sede: <strong>{quickNoteRecord.custom_site_desc || quickNoteRecord.anatomical_site.replace('_', ' ').toUpperCase()}</strong> ({quickNoteRecord.wound_type.replace(/_/g, ' ')})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setQuickNoteModalOpen(false);
+                  setQuickNoteRecord(null);
+                }}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuickNote} className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+              {/* Note attuali registrate */}
+              {quickNoteRecord.notes && (
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                  <span className="font-bold text-slate-700 block mb-1 text-[11px]">
+                    Note attuali registrate:
+                  </span>
+                  <p className="text-slate-600 whitespace-pre-line text-[11px] max-h-28 overflow-y-auto">
+                    {quickNoteRecord.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Categorie Frasi Rapide */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                  <label className="font-bold text-slate-800 text-[11px]">
+                    Frasi Rapide Pronte (clicca per inserire nella nota):
+                  </label>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory('all')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
+                        selectedCategory === 'all' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Tutte
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory('cura_crema')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
+                        selectedCategory === 'cura_crema' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      🧴 Creme
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory('comunicazioni')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
+                        selectedCategory === 'comunicazioni' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      📞 Avvisi
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory('medicazione')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
+                        selectedCategory === 'medicazione' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      🩹 Medicazioni
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-40 overflow-y-auto p-1 bg-slate-50/60 rounded-xl border border-slate-200">
+                  {OSS_QUICK_SNIPPETS.filter(
+                    (s) => selectedCategory === 'all' || s.category === selectedCategory
+                  ).map((s, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleAppendToQuickNote(s.text)}
+                      className="p-2 rounded-xl text-left bg-white hover:bg-teal-50 hover:border-teal-300 border border-slate-200 transition-all text-[11px] font-medium text-slate-700 shadow-2xs cursor-pointer flex flex-col gap-0.5"
+                    >
+                      <span className="font-bold text-teal-950 text-[11px]">{s.label}</span>
+                      <span className="text-[10px] text-slate-500 line-clamp-1">{s.text}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Textarea per la nota */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Testo della tua Nota / Consegna OSS:
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  value={quickNoteText}
+                  onChange={(e) => setQuickNoteText(e.target.value)}
+                  placeholder="Scrivi qui la tua nota (es. Lavato, deterso per bene tutto e messa crema protettiva. Ho avvisato l'infermiere...)"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 text-slate-900 bg-white font-medium"
+                />
+              </div>
+
+              {/* Modalità di salvataggio */}
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-teal-50/70 border border-teal-100">
+                <input
+                  type="checkbox"
+                  id="appendMode"
+                  checked={quickNoteAppendMode}
+                  onChange={(e) => setQuickNoteAppendMode(e.target.checked)}
+                  className="rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
+                />
+                <label htmlFor="appendMode" className="text-[11px] text-teal-950 font-medium cursor-pointer">
+                  Aggiungi in calce con data, ora e operatore (lascia intatto lo storico precedente)
+                </label>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickNoteModalOpen(false);
+                    setQuickNoteRecord(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold cursor-pointer"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="submit"
+                  disabled={quickNoteSaving || !quickNoteText.trim()}
+                  className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold cursor-pointer transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  {quickNoteSaving ? 'Salvataggio...' : 'Salva Nota'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODALE INSERIMENTO / MODIFICA MEDICAZIONE CON SUGGERITORE OSS INTELLIGENTE */}
       {modalOpen && (

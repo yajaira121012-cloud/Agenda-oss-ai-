@@ -260,11 +260,11 @@ export const OSS_QUICK_SNIPPETS: QuickSnippet[] = [
   {
     category: 'cura_crema',
     categoryLabel: '🧴 Igiene & Creme',
-    label: '🧴 Lavato, deterso con cura e applicata crema protettiva',
+    label: '🧴 Lavato, deterso con cura e messa crema protettiva',
     dressing: 'Crema protettiva lenitiva / Pasta all\'ossido di zinco a velo sottile',
     secondary: 'Ausilio assorbente pulito',
     cleansing: 'detergente_lenitivo_ph_neutro' as WoundCleansingSolution,
-    text: 'Eseguita igiene accurata con acqua tiepida e detergente delicato a pH neutro. Cute detersa per bene e asciugata con cura per tamponamento. Applicato velo sottile di crema protettiva/pasta barriera.',
+    text: 'Eseguita igiene con lavaggio accurato e detersione delicata. Asciugato per bene per tamponamento e applicata crema protettiva/barriera a velo uniforme.',
   },
   {
     category: 'cura_crema',
@@ -275,27 +275,41 @@ export const OSS_QUICK_SNIPPETS: QuickSnippet[] = [
     cleansing: 'detergente_lenitivo_ph_neutro' as WoundCleansingSolution,
     text: 'Igiene accurata con acqua tiepida e detergente intimo a pH neutro. Asciugatura meticolosa a tampone delle pieghe e applicato velo sottile di pasta all\'ossido di zinco.',
   },
+  {
+    category: 'cura_crema',
+    categoryLabel: '🧴 Igiene & Creme',
+    label: '💧 Detersione Fisiologica a Tampone',
+    dressing: 'Garza sterile asciutta di protezione',
+    cleansing: 'fisiologica_09' as WoundCleansingSolution,
+    text: 'Detersione con soluzione fisiologica sterile 0.9% per tamponamento delicato, senza strofinare. Cute perilesionale asciugata.',
+  },
 
   // Comunicazioni & Avvisi
   {
     category: 'comunicazioni',
-    categoryLabel: '📞 Avvisi & Comunicazioni',
-    label: '📞 Avvisato Infermiere ADI',
-    text: '📞 Ho avvisato l\'Infermiere del servizio ADI per segnalare l\'arrossamento/stato della cute e richiedere valutazione.',
+    categoryLabel: '📞 Avvisi & Segnalazioni',
+    label: '📞 Ho avvisato l\'Infermiere ADI',
+    text: '📞 Ho avvisato l\'Infermiere del servizio ADI per segnalare l\'arrossamento/condizioni della cute e richiedere controllo.',
   },
   {
     category: 'comunicazioni',
-    categoryLabel: '📞 Avvisi & Comunicazioni',
-    label: '👨‍⚕️ Avvisato Medico Curante (MMG)',
-    text: '👨‍⚕️ Ho avvisato il Medico Curante (MMG) per aggiornamento sulle condizioni cutanee e verifica prescrizione.',
+    categoryLabel: '📞 Avvisi & Segnalazioni',
+    label: '👨‍⚕️ Ho avvisato il Medico Curante (MMG)',
+    text: '👨‍⚕️ Ho avvisato il Medico Curante (MMG) per aggiornamento sullo stato della lesione/cute e verifica prescrizione.',
   },
   {
     category: 'comunicazioni',
-    categoryLabel: '📞 Avvisi & Comunicazioni',
-    label: '⚠️ Avvisati Infermiere & Medico Curante',
+    categoryLabel: '📞 Avvisi & Segnalazioni',
+    label: '⚠️ Avvisati sia Infermiere che Medico',
     dressing: 'Garza sterile asciutta provvisoria',
     cleansing: 'fisiologica_09' as WoundCleansingSolution,
-    text: '⚠️ Rilevata alterazione cutanea / arrossamento in evoluzione. Ho avvisato tempestivamente l\'Infermiere e il Medico Curante (MMG) per la presa in carico.',
+    text: '⚠️ Rilevato arrossamento/evoluzione. Ho avvisato tempestivamente sia l\'Infermiere che il Medico Curante (MMG) per la presa in carico.',
+  },
+  {
+    category: 'comunicazioni',
+    categoryLabel: '📞 Avvisi & Segnalazioni',
+    label: '👥 Informato il Familiare / Caregiver',
+    text: '👥 Informato il familiare/caregiver sulle condizioni della cute e sull\'importanza di mantenere lo scarico posturale.',
   },
 
   // Medicazioni Semplici
@@ -306,15 +320,7 @@ export const OSS_QUICK_SNIPPETS: QuickSnippet[] = [
     dressing: 'Connettivina garze sterili impregnate di Acido Ialuronico',
     secondary: 'Garza sterile in TNT di copertura e cerotto ipoallergenico di carta',
     cleansing: 'fisiologica_09' as WoundCleansingSolution,
-    text: 'Deterso delicatamente con soluzione fisiologica 0.9% a tampone senza strofinare. Applicata garza sterile Connettivina (Acido Ialuronico) e coperta con garza in TNT.',
-  },
-  {
-    category: 'medicazione',
-    categoryLabel: '🩹 Medicazioni',
-    label: '💧 Detersione Fisiologica a Tampone',
-    dressing: 'Garza sterile asciutta di protezione',
-    cleansing: 'fisiologica_09' as WoundCleansingSolution,
-    text: 'Detersione con soluzione fisiologica sterile 0.9% per tamponamento delicato, senza strofinare. Cute perilesionale perfettamente asciugata.',
+    text: 'Deterso delicatamente con soluzione fisiologica 0.9% a tampone. Applicata garza sterile Connettivina (Acido Ialuronico) e coperta con garza in TNT.',
   },
   {
     category: 'medicazione',
@@ -324,6 +330,12 @@ export const OSS_QUICK_SNIPPETS: QuickSnippet[] = [
     secondary: 'Garza sterile in TNT di protezione',
     cleansing: 'fisiologica_09' as WoundCleansingSolution,
     text: 'Flittene integro mantenuto intatto come barriera sterile naturale (non forato). Applicata copertura protettiva con garza sterile e scarico continuo.',
+  },
+  {
+    category: 'medicazione',
+    categoryLabel: '🩹 Medicazioni',
+    label: '✨ Medicazione pulita, asciutta e in sede',
+    text: 'Controllo ispettivo effettuato: medicazione integra, pulita e perfettamente in sede. Nessun segno di sanguinamento o secrezioni.',
   },
 
   // Postura & Scarico
